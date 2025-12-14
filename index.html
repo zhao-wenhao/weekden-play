@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周末搭子 - 找到你的周末搭子，不再一个人浪费好天气</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #22c55e;
+            --primary-hover: #16a34a;
+            --primary-light: #86efac;
+            --success-color: #10b981;
+            --danger-color: #f87171;
+            --warning-color: #fbbf24;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --bg-light: #f0fdf4;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: 20px;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: float 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-50px, -50px); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-light);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .user-info:hover {
+            background: rgba(34, 197, 94, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+        }
+
+        .user-info i {
+            color: var(--primary-color);
+            font-size: 18px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .filter-search {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .filter-search input {
+            width: 100%;
+            padding: 10px 16px 10px 40px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .filter-search input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+        }
+
+        .filter-search i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .filter-btn {
+            padding: 10px 18px;
+            border: 2px solid var(--border-color);
+            background: white;
+            border-radius: 12px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            border-color: var(--primary-color);
+            background: var(--bg-light);
+            color: var(--primary-color);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), var(--primary-hover));
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .activities-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .activity-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 24px;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .activity-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 8px 30px rgba(34, 197, 94, 0.2);
+        }
+
+        .activity-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary-color), var(--primary-light));
+        }
+
+        .activity-date-badge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+            padding: 12px;
+            border-radius: 16px;
+            color: white;
+            text-align: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .badge-gradient-1 { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .badge-gradient-2 { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .badge-gradient-3 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .badge-gradient-4 { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+        .badge-gradient-5 { background: linear-gradient(135deg, #fa709a, #fee140); }
+        .badge-gradient-6 { background: linear-gradient(135deg, #30cfd0, #330867); }
+        .badge-gradient-7 { background: linear-gradient(135deg, #a8edea, #fed6e3); }
+        .badge-gradient-8 { background: linear-gradient(135deg, #ff9a9e, #fecfef); }
+        .badge-gradient-9 { background: linear-gradient(135deg, #ffecd2, #fcb69f); }
+        .badge-gradient-10 { background: linear-gradient(135deg, #ff6e7f, #bfe9ff); }
+        .badge-gradient-11 { background: linear-gradient(135deg, #e0c3fc, #8ec5fc); }
+        .badge-gradient-12 { background: linear-gradient(135deg, #f77062, #fe5196); }
+
+        .activity-date-badge .day {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .activity-date-badge .month {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        /* 周期活动日期样式优化 */
+        .activity-date-badge.range {
+            padding: 10px 8px;
+        }
+
+        .activity-date-badge.range .day {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .activity-date-badge.range .month {
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .activity-date-badge.long-term {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .activity-date-badge.long-term .day {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .activity-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .activity-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .activity-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .activity-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .activity-meta-item i {
+            color: var(--primary-color);
+        }
+
+        .activity-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            background: var(--bg-light);
+            border-radius: 12px;
+            font-size: 13px;
+            color: var(--primary-color);
+            margin-top: 8px;
+        }
+
+        .activity-status {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .participant-count {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: var(--bg-light);
+        }
+
+        .participant-count.full {
+            color: var(--warning-color);
+            background: #fffbeb;
+        }
+
+        .participant-count.available {
+            color: var(--success-color);
+            background: var(--bg-light);
+        }
+
+        .status-badge {
+            padding: 6px 16px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-badge.full {
+            background: #fffbeb;
+            color: var(--warning-color);
+        }
+
+        .status-badge.available {
+            background: var(--bg-light);
+            color: var(--success-color);
+        }
+
+        .share-btn {
+            padding: 6px 12px;
+            background: var(--bg-light);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: var(--primary-color);
+        }
+
+        .share-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.1);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            color: var(--primary-light);
+            margin-bottom: 16px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .close-btn:hover {
+            background: var(--bg-light);
+            color: var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-group .required {
+            color: var(--danger-color);
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 4px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .date-type-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .date-type-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .date-type-btn.active {
+            border-color: var(--primary-color);
+            background: var(--bg-light);
+            color: var(--primary-color);
+        }
+
+        .activity-type-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .type-option {
+            padding: 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .type-option:hover, .type-option.selected {
+            border-color: var(--primary-color);
+            background: var(--bg-light);
+        }
+
+        .type-option i {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .type-option .type-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .type-option .type-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .contact-input-group, .time-input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 280px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 12px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -140px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+        }
+
+        .loading i {
+            font-size: 48px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(34, 197, 94, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 2000;
+            animation: slideInRight 0.3s;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left: 4px solid var(--success-color); }
+        .toast.error { border-left: 4px solid var(--danger-color); }
+
+        @media (max-width: 768px) {
+            .activity-card {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            .filters {
+                flex-direction: column;
+            }
+            .filter-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .activity-type-grid {
+                grid-template-columns: 1fr;
+            }
+            .contact-input-group, .time-input-group {
+                grid-template-columns: 1fr;
+            }
+            .date-type-group {
+                flex-direction: column;
+            }
+            .form-actions {
+                flex-direction: column;
+            }
+            .form-actions .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-top">
+                <div>
+                    <h1>
+                        <i class="fas fa-calendar-days"></i>
+                        周末搭子
+                    </h1>
+                    <p class="header-subtitle">找到你的周末搭子，不再一个人浪费好天气</p>
+                </div>
+                <div class="user-actions">
+                    <div class="user-info" id="userInfo">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="userNickname">设置昵称</span>
+                    </div>
+                    <button class="btn btn-primary" id="createActivityBtn">
+                        <i class="fas fa-plus"></i>
+                        立即发布
+                    </button>
+                </div>
+            </div>
+
+            <div class="filters">
+                <div class="filter-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="搜索活动标题...">
+                </div>
+                <button class="filter-btn" data-time="today">
+                    <i class="fas fa-calendar-day"></i>
+                    今天
+                </button>
+                <button class="filter-btn" data-time="tomorrow">
+                    <i class="fas fa-calendar-day"></i>
+                    明天
+                </button>
+                <button class="filter-btn" data-time="weekend">
+                    <i class="fas fa-calendar-week"></i>
+                    本周末
+                </button>
+                <button class="filter-btn active" data-time="all">
+                    <i class="fas fa-calendar"></i>
+                    全部时间
+                </button>
+                <button class="filter-btn" data-type="social">
+                    <i class="fas fa-comments"></i>
+                    社交型
+                </button>
+                <button class="filter-btn" data-type="quiet">
+                    <i class="fas fa-book-reader"></i>
+                    安静型
+                </button>
+                <button class="filter-btn" data-type="photo">
+                    <i class="fas fa-camera"></i>
+                    打卡型
+                </button>
+                <button class="filter-btn" data-type="sport">
+                    <i class="fas fa-running"></i>
+                    运动型
+                </button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <i class="fas fa-spinner"></i>
+            <p>加载中...</p>
+        </div>
+
+        <div class="activities-list" id="activitiesList" style="display: none;"></div>
+
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <i class="fas fa-calendar-xmark"></i>
+            <h3>还没有活动</h3>
+            <p>成为第一个发布活动的人吧！</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus"></i>
+                立即发布活动
+            </button>
+        </div>
+    </div>
+
+    <!-- 昵称弹窗 -->
+    <div class="modal" id="nicknameModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>设置昵称</h2>
+            </div>
+            <div class="form-group">
+                <label>你的昵称 <span class="required">*</span></label>
+                <input type="text" id="nicknameInput" placeholder="请输入昵称" maxlength="50">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="saveNickname()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建活动弹窗 -->
+    <div class="modal" id="createModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>发布新活动</h2>
+                <button class="close-btn" onclick="closeCreateModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="createForm">
+                <div class="form-group">
+                    <label>活动标题 <span class="required">*</span></label>
+                    <input type="text" id="activityTitle" placeholder="例如：12/25 朝阳区 周末爬香山" maxlength="100" required>
+                    <small>💡 建议格式：日期 + 区域 + 活动内容</small>
+                </div>
+
+                <div class="form-group">
+                    <label>活动时间 <span class="required">*</span></label>
+                    <div class="date-type-group">
+                        <button type="button" class="date-type-btn active" data-type="single">单日活动</button>
+                        <button type="button" class="date-type-btn" data-type="range">日期范围</button>
+                        <button type="button" class="date-type-btn" data-type="long">长期活动</button>
+                    </div>
+                    <div id="singleDateInput">
+                        <input type="date" id="activityDate">
+                    </div>
+                    <div id="rangeDateInput" style="display:none;">
+                        <div class="contact-input-group">
+                            <input type="date" id="activityDateStart" placeholder="开始日期">
+                            <input type="date" id="activityDateEnd" placeholder="结束日期">
+                        </div>
+                    </div>
+                    <div id="longTermInput" style="display:none;">
+                        <input type="text" value="长期有效" readonly style="background: var(--bg-light);">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>活动时段 <span class="required">*</span></label>
+                    <div class="time-input-group">
+                        <input type="time" id="activityTimeStart" required>
+                        <input type="time" id="activityTimeEnd" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>活动地点 <span class="required">*</span></label>
+                    <input type="text" id="activityLocation" placeholder="例如：香山公园北门" maxlength="200" required>
+                </div>
+
+                <div class="form-group">
+                    <label>活动类型 <span class="required">*</span></label>
+                    <div class="activity-type-grid">
+                        <div class="type-option" data-type="social">
+                            <div><i class="fas fa-comments" style="color: #f59e0b;"></i></div>
+                            <div class="type-name">👥 社交型</div>
+                            <div class="type-desc">喜欢边玩边聊，适合话痨</div>
+                        </div>
+                        <div class="type-option" data-type="quiet">
+                            <div><i class="fas fa-book-reader" style="color: #8b5cf6;"></i></div>
+                            <div class="type-name">🤫 安静型</div>
+                            <div class="type-desc">喜欢一起做事少说话，适合i人</div>
+                        </div>
+                        <div class="type-option" data-type="photo">
+                            <div><i class="fas fa-camera" style="color: #ec4899;"></i></div>
+                            <div class="type-name">📸 打卡型</div>
+                            <div class="type-desc">主要目的是拍照，颜值即正义</div>
+                        </div>
+                        <div class="type-option" data-type="sport">
+                            <div><i class="fas fa-running" style="color: #ef4444;"></i></div>
+                            <div class="type-name">🏃 运动型</div>
+                            <div class="type-desc">强度较大，需要体力</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="activityType">
+                </div>
+
+                <div class="form-group">
+                    <label>最大人数 <span class="required">*</span></label>
+                    <select id="activityMaxParticipants" required>
+                        <option value="">请选择人数</option>
+                        <option value="2">2人</option>
+                        <option value="3">3人</option>
+                        <option value="4">4人</option>
+                        <option value="5">5人</option>
+                        <option value="6">6人</option>
+                        <option value="8">8人</option>
+                        <option value="10">10人</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>活动描述</label>
+                    <textarea id="activityDescription" placeholder="详细描述活动内容..." rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>联系方式 <span class="required">*</span></label>
+                    <div class="contact-input-group">
+                        <input type="tel" id="activityPhone" placeholder="手机号" maxlength="11" required>
+                        <input type="text" id="activityWechat" placeholder="微信号" maxlength="50" required>
+                    </div>
+                    <small>⚠️ 请填写真实联系方式</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                        发布活动
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 活动详情弹窗 -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="detailTitle">活动详情</h2>
+                <button class="close-btn" onclick="closeDetailModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="detailContent"></div>
+        </div>
+    </div>
+
+    <!-- 参与弹窗 -->
+    <div class="modal" id="joinModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>参与活动</h2>
+                <button class="close-btn" onclick="closeJoinModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="form-group">
+                <label>你的昵称 <span class="required">*</span></label>
+                <input type="text" id="joinNickname" placeholder="请输入昵称" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label>联系方式 <span class="required">*</span></label>
+                <div class="contact-input-group">
+                    <input type="tel" id="joinPhone" placeholder="手机号" maxlength="11">
+                    <input type="text" id="joinWechat" placeholder="微信号" maxlength="50">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="closeJoinModal()">取消</button>
+                <button class="btn btn-success" onclick="confirmJoin()">
+                    <i class="fas fa-check"></i>
+                    确认参与
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://psaiklwlvylgnsaitvov.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzYWlrbHdsdnlsZ25zYWl0dm92Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2MTg2NDgsImV4cCI6MjA4MTE5NDY0OH0.PyZXNzkC4wnDs32EdQxEPyh030ASiQbNrDP99cn-GkQ';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentUser = { nickname: localStorage.getItem('userNickname') || '' };
+        let currentActivityId = null;
+        let activities = [];
+        let currentFilters = { time: 'all', type: 'all', search: '' };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initApp();
+            setupEventListeners();
+        });
+
+        async function initApp() {
+            if (!currentUser.nickname) {
+                openNicknameModal();
+            } else {
+                updateUserDisplay();
+            }
+
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('activityDate').value = tomorrow.toISOString().split('T')[0];
+            document.getElementById('activityDate').min = new Date().toISOString().split('T')[0];
+            document.getElementById('activityDateStart').min = new Date().toISOString().split('T')[0];
+            document.getElementById('activityDateEnd').min = new Date().toISOString().split('T')[0];
+            document.getElementById('activityTimeStart').value = '09:00';
+            document.getElementById('activityTimeEnd').value = '12:00';
+
+            await loadActivities();
+            subscribeToActivities();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('createActivityBtn').addEventListener('click', openCreateModal);
+            document.getElementById('userInfo').addEventListener('click', openNicknameModal);
+            document.getElementById('createForm').addEventListener('submit', handleCreateActivity);
+
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                currentFilters.search = e.target.value;
+                renderActivities();
+            });
+
+            document.querySelectorAll('.filter-btn[data-time]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn[data-time]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilters.time = this.dataset.time;
+                    renderActivities();
+                });
+            });
+
+            document.querySelectorAll('.filter-btn[data-type]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (this.classList.contains('active')) {
+                        this.classList.remove('active');
+                        currentFilters.type = 'all';
+                    } else {
+                        document.querySelectorAll('.filter-btn[data-type]').forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        currentFilters.type = this.dataset.type;
+                    }
+                    renderActivities();
+                });
+            });
+
+            document.querySelectorAll('.date-type-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.date-type-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    const type = this.dataset.type;
+                    
+                    document.getElementById('singleDateInput').style.display = type === 'single' ? 'block' : 'none';
+                    document.getElementById('rangeDateInput').style.display = type === 'range' ? 'block' : 'none';
+                    document.getElementById('longTermInput').style.display = type === 'long' ? 'block' : 'none';
+                });
+            });
+
+            document.querySelectorAll('.type-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
+                    this.classList.add('selected');
+                    document.getElementById('activityType').value = this.dataset.type;
+                });
+            });
+
+            document.querySelectorAll('input[type="tel"]').forEach(input => {
+                input.addEventListener('input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+            });
+        }
+
+        function openNicknameModal() {
+            document.getElementById('nicknameInput').value = currentUser.nickname;
+            document.getElementById('nicknameModal').classList.add('active');
+        }
+
+        function saveNickname() {
+            const nickname = document.getElementById('nicknameInput').value.trim();
+            if (!nickname) {
+                showToast('请输入昵称', 'error');
+                return;
+            }
+            currentUser.nickname = nickname;
+            localStorage.setItem('userNickname', nickname);
+            updateUserDisplay();
+            document.getElementById('nicknameModal').classList.remove('active');
+            showToast('昵称已保存', 'success');
+        }
+
+        function updateUserDisplay() {
+            document.getElementById('userNickname').textContent = currentUser.nickname;
+        }
+
+        async function loadActivities() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('activitiesList').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'none';
+
+                const today = new Date().toISOString().split('T')[0];
+
+                const { data, error } = await supabase
+                    .from('activity_stats')
+                    .select('*')
+                    .or(`activity_date_start.gte.${today},is_long_term.eq.true`)
+                    .order('is_long_term', { ascending: false })
+                    .order('activity_date_start', { ascending: true });
+
+                if (error) throw error;
+
+                activities = data || [];
+                renderActivities();
+
+            } catch (error) {
+                console.error('加载活动失败:', error);
+                showToast('加载活动失败，请刷新重试', 'error');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function filterActivities() {
+            let filtered = activities;
+
+            if (currentFilters.search) {
+                filtered = filtered.filter(a => 
+                    a.title.toLowerCase().includes(currentFilters.search.toLowerCase())
+                );
+            }
+
+            if (currentFilters.type !== 'all') {
+                filtered = filtered.filter(a => a.activity_type === currentFilters.type);
+            }
+
+            if (currentFilters.time !== 'all') {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                filtered = filtered.filter(a => {
+                    if (a.is_long_term) return true;
+                    
+                    const activityDate = new Date(a.activity_date_start);
+                    activityDate.setHours(0, 0, 0, 0);
+                    
+                    switch(currentFilters.time) {
+                        case 'today':
+                            return activityDate.getTime() === today.getTime();
+                        case 'tomorrow':
+                            const tomorrow = new Date(today);
+                            tomorrow.setDate(tomorrow.getDate() + 1);
+                            return activityDate.getTime() === tomorrow.getTime();
+                        case 'weekend':
+                            const day = today.getDay();
+                            const saturday = new Date(today);
+                            const daysToSaturday = day === 0 ? 6 : (6 - day);
+                            saturday.setDate(today.getDate() + daysToSaturday);
+                            const sunday = new Date(saturday);
+                            sunday.setDate(saturday.getDate() + 1);
+                            return activityDate.getTime() === saturday.getTime() || 
+                                   activityDate.getTime() === sunday.getTime();
+                        default:
+                            return true;
+                    }
+                });
+            }
+
+            return filtered;
+        }
+
+        function renderActivities() {
+            const list = document.getElementById('activitiesList');
+            const emptyState = document.getElementById('emptyState');
+
+            const filtered = filterActivities();
+
+            if (filtered.length === 0) {
+                list.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            list.style.display = 'flex';
+            emptyState.style.display = 'none';
+
+            const typeLabels = {
+                'social': '👥 社交型',
+                'quiet': '🤫 安静型',
+                'photo': '📸 打卡型',
+                'sport': '🏃 运动型'
+            };
+
+            list.innerHTML = filtered.map(activity => {
+                const isFull = activity.participant_count >= activity.max_participants;
+                const gradientClass = getRandomGradientClass();
+
+                let dateDisplay = '';
+                if (activity.is_long_term) {
+                    dateDisplay = `
+                        <div class="activity-date-badge long-term">
+                            <div class="day">长期</div>
+                            <div class="month">活动</div>
+                        </div>
+                    `;
+                } else if (activity.activity_date_end) {
+                    const startDate = new Date(activity.activity_date_start);
+                    const endDate = new Date(activity.activity_date_end);
+                    dateDisplay = `
+                        <div class="activity-date-badge range ${gradientClass}">
+                            <div class="day">${startDate.getMonth()+1}/${startDate.getDate()}<br>至<br>${endDate.getMonth()+1}/${endDate.getDate()}</div>
+                            <div class="month">周期活动</div>
+                        </div>
+                    `;
+                } else {
+                    const date = new Date(activity.activity_date_start);
+                    dateDisplay = `
+                        <div class="activity-date-badge ${gradientClass}">
+                            <div class="day">${date.getDate()}</div>
+                            <div class="month">${date.getMonth() + 1}月</div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="activity-card" onclick="showActivityDetail('${activity.id}')">
+                        ${dateDisplay}
+                        <div class="activity-main">
+                            <h3 class="activity-title">${escapeHtml(activity.title)}</h3>
+                            <div class="activity-meta">
+                                <div class="activity-meta-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>${escapeHtml(activity.activity_time)}</span>
+                                </div>
+                                <div class="activity-meta-item">
+                                    <i class="fas fa-location-dot"></i>
+                                    <span>${escapeHtml(activity.location)}</span>
+                                </div>
+                            </div>
+                            <div class="activity-type-badge">
+                                ${typeLabels[activity.activity_type] || activity.activity_type}
+                                ${activity.participant_count > 0 ? ` | 已有${activity.participant_count}人加入` : ''}
+                            </div>
+                        </div>
+                        <div class="activity-status">
+                            <div class="participant-count ${isFull ? 'full' : 'available'}">
+                                <i class="fas fa-users"></i>
+                                <span>${activity.participant_count}/${activity.max_participants}</span>
+                            </div>
+                            <span class="status-badge ${isFull ? 'full' : 'available'}">
+                                ${isFull ? '可围观&候补' : '可参与'}
+                            </span>
+                            <button class="share-btn" onclick="shareActivity(event, '${activity.id}')">
+                                <i class="fas fa-share-alt"></i>
+                                分享
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getRandomGradientClass() {
+            return `badge-gradient-${Math.floor(Math.random() * 12) + 1}`;
+        }
+
+        function openCreateModal() {
+            if (!currentUser.nickname) {
+                openNicknameModal();
+                showToast('请先设置昵称', 'error');
+                return;
+            }
+            document.getElementById('createModal').classList.add('active');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.remove('active');
+            document.getElementById('createForm').reset();
+            document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
+            document.getElementById('activityType').value = '';
+            
+            document.querySelectorAll('.date-type-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.date-type-btn[data-type="single"]').classList.add('active');
+            document.getElementById('singleDateInput').style.display = 'block';
+            document.getElementById('rangeDateInput').style.display = 'none';
+            document.getElementById('longTermInput').style.display = 'none';
+            
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('activityDate').value = tomorrow.toISOString().split('T')[0];
+            document.getElementById('activityTimeStart').value = '09:00';
+            document.getElementById('activityTimeEnd').value = '12:00';
+        }
+
+        async function handleCreateActivity(e) {
+            e.preventDefault();
+
+            const dateType = document.querySelector('.date-type-btn.active').dataset.type;
+            const phone = document.getElementById('activityPhone').value.trim();
+            const wechat = document.getElementById('activityWechat').value.trim();
+            const activityType = document.getElementById('activityType').value;
+
+            if (!activityType) {
+                showToast('请选择活动类型', 'error');
+                return;
+            }
+
+            if (!/^1[3-9]\d{9}$/.test(phone)) {
+                showToast('请输入正确的手机号', 'error');
+                return;
+            }
+
+            if (!wechat) {
+                showToast('请输入微信号', 'error');
+                return;
+            }
+
+            if (dateType === 'single' && !document.getElementById('activityDate').value) {
+                showToast('请选择活动日期', 'error');
+                return;
+            }
+
+            if (dateType === 'range') {
+                const start = document.getElementById('activityDateStart').value;
+                const end = document.getElementById('activityDateEnd').value;
+                if (!start || !end) {
+                    showToast('请选择开始和结束日期', 'error');
+                    return;
+                }
+                if (start > end) {
+                    showToast('结束日期不能早于开始日期', 'error');
+                    return;
+                }
+            }
+
+            const timeStart = document.getElementById('activityTimeStart').value;
+            const timeEnd = document.getElementById('activityTimeEnd').value;
+            if (timeStart >= timeEnd) {
+                showToast('结束时间必须晚于开始时间', 'error');
+                return;
+            }
+
+            let formData = {
+                title: document.getElementById('activityTitle').value.trim(),
+                activity_time: `${timeStart}-${timeEnd}`,
+                location: document.getElementById('activityLocation').value.trim(),
+                max_participants: parseInt(document.getElementById('activityMaxParticipants').value),
+                description: document.getElementById('activityDescription').value.trim(),
+                creator_nickname: currentUser.nickname,
+                contact_info: `手机：${phone} | 微信：${wechat}`,
+                activity_type: activityType,
+                is_long_term: dateType === 'long'
+            };
+
+            if (dateType === 'single') {
+                formData.activity_date_start = document.getElementById('activityDate').value;
+                formData.activity_date_end = null;
+            } else if (dateType === 'range') {
+                formData.activity_date_start = document.getElementById('activityDateStart').value;
+                formData.activity_date_end = document.getElementById('activityDateEnd').value;
+            } else {
+                formData.activity_date_start = new Date().toISOString().split('T')[0];
+                formData.activity_date_end = null;
+            }
+
+            try {
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发布中...';
+
+                const { error } = await supabase.from('activities').insert([formData]);
+                
+                if (error) throw error;
+                
+                showToast('活动发布成功！', 'success');
+                closeCreateModal();
+                await loadActivities();
+            } catch (error) {
+                console.error('发布失败:', error);
+                showToast('发布失败，请重试', 'error');
+            } finally {
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发布活动';
+                }
+            }
+        }
+
+        async function showActivityDetail(activityId) {
+            currentActivityId = activityId;
+            try {
+                const { data: activity } = await supabase
+                    .from('activity_stats')
+                    .select('*')
+                    .eq('id', activityId)
+                    .single();
+
+                const { data: participants } = await supabase
+                    .from('participants')
+                    .select('nickname, is_waitlist')
+                    .eq('activity_id', activityId)
+                    .order('joined_at');
+
+                renderActivityDetail(activity, participants || []);
+                document.getElementById('detailModal').classList.add('active');
+            } catch (error) {
+                console.error(error);
+                showToast('加载失败', 'error');
+            }
+        }
+
+        function renderActivityDetail(activity, participants) {
+            const typeLabels = {
+                'social': '👥 社交型：喜欢边玩边聊',
+                'quiet': '🤫 安静型：少说话多做事',
+                'photo': '📸 打卡型：拍照为主',
+                'sport': '🏃 运动型：需要体力'
+            };
+
+            const isFull = activity.participant_count >= activity.max_participants;
+            const hasJoined = participants.some(p => p.nickname === currentUser.nickname);
+            const isCreator = activity.creator_nickname === currentUser.nickname;
+
+            let actionBtn = '';
+            if (isCreator) {
+                actionBtn = `<button class="btn btn-danger" onclick="deleteActivity()">
+                    <i class="fas fa-trash"></i> 删除活动
+                </button>`;
+            } else if (hasJoined) {
+                actionBtn = `<button class="btn btn-danger" onclick="quitActivity()">
+                    <i class="fas fa-sign-out-alt"></i> 退出活动
+                </button>`;
+            } else {
+                actionBtn = `
+                    <div class="tooltip">
+                        <button class="btn btn-success" onclick="openJoinModal()">
+                            <i class="fas fa-user-plus"></i>
+                            ${isFull ? '围观&候补' : '立即参与'}
+                        </button>
+                        <span class="tooltiptext">💬 参与后发起人会发起微信群聊，先聊聊再决定是否真的去</span>
+                    </div>
+                `;
+            }
+
+            let dateStr = '';
+            if (activity.is_long_term) {
+                dateStr = '长期活动';
+            } else if (activity.activity_date_end) {
+                dateStr = `${activity.activity_date_start} 至 ${activity.activity_date_end}`;
+            } else {
+                dateStr = formatDate(activity.activity_date_start);
+            }
+
+            document.getElementById('detailTitle').textContent = activity.title;
+            document.getElementById('detailContent').innerHTML = `
+                <div style="background: var(--bg-light); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                    <p style="margin-bottom:8px;"><strong>📅 日期：</strong>${dateStr}</p>
+                    <p style="margin-bottom:8px;"><strong>⏰ 时间：</strong>${activity.activity_time}</p>
+                    <p style="margin-bottom:8px;"><strong>📍 地点：</strong>${activity.location}</p>
+                    <p style="margin-bottom:8px;"><strong>👥 人数：</strong>${activity.participant_count}/${activity.max_participants}</p>
+                    <p style="margin-bottom:8px;"><strong>🎯 类型：</strong>${typeLabels[activity.activity_type]}</p>
+                    <p style="margin-bottom:8px;"><strong>👤 发起人：</strong>${activity.creator_nickname}</p>
+                    <p style="margin-bottom:8px;"><strong>📱 联系：</strong>${activity.contact_info}</p>
+                    ${activity.description ? `<p style="margin-top:12px;"><strong>📝 描述：</strong><br>${escapeHtml(activity.description)}</p>` : ''}
+                </div>
+                ${participants.length > 0 ? `
+                    <h4 style="margin-bottom:12px;">👥 参与者 (${participants.filter(p => !p.is_waitlist).length}人)</h4>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+                        ${participants.filter(p => !p.is_waitlist).map(p => 
+                            `<span style="background:var(--primary-color);color:white;padding:6px 12px;border-radius:12px;">${escapeHtml(p.nickname)}</span>`
+                        ).join('')}
+                    </div>
+                ` : ''}
+                ${activity.waitlist_count > 0 ? `
+                    <h4 style="margin-bottom:12px;">⏰ 候补 (${activity.waitlist_count}人)</h4>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+                        ${participants.filter(p => p.is_waitlist).map(p => 
+                            `<span style="background:var(--warning-color);color:white;padding:6px 12px;border-radius:12px;">${escapeHtml(p.nickname)}</span>`
+                        ).join('')}
+                    </div>
+                ` : ''}
+                <div style="display:flex;justify-content:center;margin-top:24px;">
+                    ${actionBtn}
+                </div>
+            `;
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        function openJoinModal() {
+            document.getElementById('joinNickname').value = currentUser.nickname;
+            document.getElementById('joinPhone').value = '';
+            document.getElementById('joinWechat').value = '';
+            document.getElementById('joinModal').classList.add('active');
+        }
+
+        function closeJoinModal() {
+            document.getElementById('joinModal').classList.remove('active');
+        }
+
+        async function confirmJoin() {
+            const nickname = document.getElementById('joinNickname').value.trim();
+            const phone = document.getElementById('joinPhone').value.trim();
+            const wechat = document.getElementById('joinWechat').value.trim();
+
+            if (!nickname || !/^1[3-9]\d{9}$/.test(phone) || !wechat) {
+                showToast('请填写完整正确的信息', 'error');
+                return;
+            }
+
+            try {
+                const { data: activity } = await supabase
+                    .from('activity_stats')
+                    .select('*')
+                    .eq('id', currentActivityId)
+                    .single();
+
+                const isFull = activity.participant_count >= activity.max_participants;
+
+                const { error } = await supabase.from('participants').insert([{
+                    activity_id: currentActivityId,
+                    nickname,
+                    phone,
+                    wechat,
+                    is_waitlist: isFull
+                }]);
+
+                if (error) {
+                    if (error.code === '23505') {
+                        showToast('你已经参与过此活动', 'error');
+                    } else {
+                        throw error;
+                    }
+                    return;
+                }
+
+                currentUser.nickname = nickname;
+                localStorage.setItem('userNickname', nickname);
+                updateUserDisplay();
+                showToast(isFull ? '已加入候补' : '参与成功！', 'success');
+                closeJoinModal();
+                await showActivityDetail(currentActivityId);
+                await loadActivities();
+            } catch (error) {
+                console.error(error);
+                showToast('参与失败', 'error');
+            }
+        }
+
+        async function deleteActivity() {
+            if (!confirm('确定要删除此活动吗？')) return;
+            try {
+                await supabase.from('activities').delete().eq('id', currentActivityId);
+                showToast('活动已删除', 'success');
+                closeDetailModal();
+                await loadActivities();
+            } catch (error) {
+                console.error(error);
+                showToast('删除失败', 'error');
+            }
+        }
+
+        async function quitActivity() {
+            if (!confirm('确定要退出此活动吗？')) return;
+            try {
+                await supabase.from('participants')
+                    .delete()
+                    .eq('activity_id', currentActivityId)
+                    .eq('nickname', currentUser.nickname);
+                showToast('已退出活动', 'success');
+                await showActivityDetail(currentActivityId);
+                await loadActivities();
+            } catch (error) {
+                console.error(error);
+                showToast('退出失败', 'error');
+            }
+        }
+
+        function shareActivity(event, activityId) {
+            event.stopPropagation();
+            const url = `${window.location.origin}?activity=${activityId}`;
+            if (navigator.share) {
+                navigator.share({ title: '周末搭子活动', url });
+            } else {
+                navigator.clipboard.writeText(url);
+                showToast('链接已复制', 'success');
+            }
+        }
+
+        function subscribeToActivities() {
+            supabase.channel('activities_changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, () => loadActivities())
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, () => {
+                    loadActivities();
+                    if (currentActivityId) showActivityDetail(currentActivityId);
+                })
+                .subscribe();
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            return `${date.getMonth() + 1}月${date.getDate()}日 ${weekdays[date.getDay()]}`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
